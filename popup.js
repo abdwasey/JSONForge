@@ -1,30 +1,73 @@
 document.getElementById("generateBtn").addEventListener("click", () => {
-    const jsonText = document.getElementById("jsonInput").value;
+
+    const jsonText = document.getElementById("jsonInput").value.trim();
     const languageType = document.getElementById("language").value;
+    const outputElement = document.getElementById("output");
 
     try {
-        const obj = JSON.parse(jsonText);
+
+        const parsed = JSON.parse(jsonText);
+
+        const obj = Array.isArray(parsed)
+            ? parsed[0]
+            : parsed;
+
+        if (!obj) {
+            outputElement.textContent = "Array is empty";
+            return;
+        }
 
         let output = "";
 
-        if (Array.isArray(obj)) {
-            Object.keys(obj?.[0]).forEach((key)=>{
-                if(languageType === 'java'){
-                    output += `private String ${key};\n`;
-                } else if(languageType === 'typescript'){
-                    output += `${key} : string; \n`;
-                }
-            })
-
-        } else {
-            for (const key in obj) {
-                output += `private String ${key};\n`;
-            }
+        if (languageType === "java") {
+            output += "public class Model {\n\n";
+        } else if (languageType === "typescript") {
+            output += "export interface Model {\n";
         }
 
-        document.getElementById("output").textContent = output;
+        Object.keys(obj).forEach((key) => {
+
+            const value = obj[key];
+
+            let type = "String";
+
+            if (typeof value === "number") {
+                type = languageType === "java"
+                    ? "int"
+                    : "number";
+            } else if (typeof value === "boolean") {
+                type = languageType === "java"
+                    ? "boolean"
+                    : "boolean";
+            } else if (Array.isArray(value)) {
+                type = languageType === "java"
+                    ? "List<Object>"
+                    : "any[]";
+            } else if (typeof value === "object" && value !== null) {
+                type = languageType === "java"
+                    ? "Object"
+                    : "object";
+            } else {
+                type = languageType === "java"
+                    ? "String"
+                    : "string";
+            }
+
+            // Generate fields
+            if (languageType === "java") {
+                output += `    private ${type} ${key};\n`;
+            } else if (languageType === "typescript") {
+                output += `    ${key}: ${type};\n`;
+            }
+
+        });
+
+        output += "\n}";
+
+        outputElement.textContent = output;
 
     } catch (e) {
-        document.getElementById("output").textContent = "Invalid JSON";
+        outputElement.textContent = `Invalid JSON: ${e.message}`;
     }
+
 });
